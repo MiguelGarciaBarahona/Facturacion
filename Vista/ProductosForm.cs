@@ -16,7 +16,7 @@ namespace Vista
         }
 
         string Operacion;
-        Producto Product = new Producto();
+        Producto Product;
         ProductoDB ProductoDB = new ProductoDB();
         DataTable dable = new DataTable();
 
@@ -48,6 +48,7 @@ namespace Vista
             PrecioTextBox.Clear();
             EstaActivoCPheckBox.Enabled = false;
             ImagenPictureBox.Image = null;
+            Product = null;
 
         }
 
@@ -100,6 +101,22 @@ namespace Vista
 
         private void GuardarButton_Click(object sender, EventArgs e)
         {
+            Product = new Producto();
+            Product.Codigo = CodigoTextBox.Text;
+            Product.Descripcion = DescripcionTextBox.Text;
+            Product.Precio = Convert.ToDecimal(PrecioTextBox.Text);
+            Product.Existencia = Convert.ToInt32(ExistenciaTextBox.Text);
+            Product.EstaActivo = EstaActivoCPheckBox.Checked;
+
+            if (ImagenPictureBox.Image != null)
+            {
+                System.IO.MemoryStream ms = new System.IO.MemoryStream();
+
+                ImagenPictureBox.Image.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+
+                Product.Foto = ms.GetBuffer();
+            }
+
             if (Operacion == "Nuevo")
             {
                 if (string.IsNullOrEmpty(CodigoTextBox.Text))
@@ -159,6 +176,21 @@ namespace Vista
                     MessageBox.Show("NO se Guardo Registro ", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+            else if (Operacion == "MOdificar")
+            {
+                bool modifico = ProductoDB.editar(Product);
+                if (modifico)
+                {
+                    DesabilitarControles();
+                    LimpiarControles();
+                    TraerProductos();
+                    MessageBox.Show("Registro Actualizado Con Exito", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("NO se Actualizo el Registro ", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         private void ExistenciaTextBox_KeyPress(object sender, KeyPressEventArgs e)
@@ -178,7 +210,7 @@ namespace Vista
 
         private void PrecioTextBox_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (!char.IsDigit(e.KeyChar) && (e.KeyChar != '.'))
+            if (!char.IsDigit(e.KeyChar) && (e.KeyChar != '.') && e.KeyChar != '\b')
             {
                 e.Handled = true;
             }
@@ -211,6 +243,32 @@ namespace Vista
         private void TraerProductos()
         {
             ProductosDataGridView.DataSource = ProductoDB.DevolverProducto();
+        }
+
+        private void EliminarButton_Click(object sender, EventArgs e)
+        {
+            if (ProductosDataGridView.SelectedRows.Count > 0)
+            {
+                DialogResult resultado = MessageBox.Show("Confirmar Eliminacio", "advertencia", MessageBoxButtons.YesNo);
+
+                if (resultado == DialogResult.Yes)
+                {
+                    bool elimino = ProductoDB.Eliminar(ProductosDataGridView.CurrentRow.Cells["Codigo"].Value.ToString());
+
+                    if (elimino)
+                    {
+                        LimpiarControles();
+                        DesabilitarControles();
+                        TraerProductos();
+                        MessageBox.Show("Registro Eliminado");
+
+                    }
+                    else
+                    {
+                        MessageBox.Show("No Se Pudo Eliminar el Registro");
+                    }
+                }
+            }
         }
     }
 }
